@@ -1,0 +1,48 @@
+trigger ContactTrigger on Contact (after insert, after update, after delete) {
+    if (Trigger.isInsert) {
+        for (Contact c : Trigger.new) {
+            Approval.ProcessSubmitRequest approvalRequest = new Approval.ProcessSubmitRequest();
+            approvalRequest.setComments('Submit Contact for Approval');
+            approvalRequest.setObjectId(c.Id);
+            Approval.ProcessResult apprResult = Approval.process(approvalRequest);
+        }
+    } else if (Trigger.isUpdate) {
+        List<String> updateAccountIds = new List<String>();
+        Map<Id, Contact> oldContacts = Trigger.oldMap;
+        for (Contact contact : Trigger.New) {
+            if (contact.AccountId == null) {
+                continue;
+            }            
+            if ((contact.Active__c == true) && (oldContacts.get(contact.id).Active__c == false)) {
+            	updateAccountIds.add(contact.AccountId);
+            }
+        }
+
+        if (updateAccountIds.size() > 0) {
+            List<Account> updateAccounts = [Select Id, Total_Contact__c from Account where Id in :updateAccountIds];
+            for (Account account: updateAccounts) {
+                account.Total_Contact__c += 1;
+            }
+            update updateAccounts;            
+        }
+    } else if (Trigger.isDelete) {
+        List<String> updateAccountIds = new List<String>();
+        for (Contact contact : Trigger.Old) {
+            if (contact.AccountId == null) {
+                continue;
+            }
+            updateAccountIds.add(contact.AccountId);
+        }
+
+        if (updateAccountIds.size() > 0) {
+            List<Account> updateAccounts = [Select Id, Total_Contact__c from Account where Id in :updateAccountIds];
+            for (Account account: updateAccounts) {
+                if (account.Total_Contact__c > 0) {
+					account.Total_Contact__c -= 1;   
+                }
+            }
+            
+            update updateAccounts;
+        }
+    }
+}

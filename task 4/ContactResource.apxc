@@ -1,0 +1,44 @@
+@RestResource(urlMapping='/contacts/*')
+global with sharing class ContactResource {
+
+    global class ErrorResponse {
+        String StatusCode;
+        String Message;
+        List<String> Fields;
+    }
+
+    global class ResponseWrapper {
+        Boolean success;
+        List<ErrorResponse> errors;
+    }
+
+    @HTTPPatch
+    global static List<ResponseWrapper> updateContacts() {
+        List<ResponseWrapper> responseWrapperList = new List<ResponseWrapper>();
+        RestRequest contactRequest = RestContext.request;
+        String requestBody = contactRequest.requestBody.toString();
+        List<Contact> contactsToUpdate = (List<Contact>) JSON.deserialize(requestBody, List<Contact>.class);
+        Database.SaveResult[] updateResults = Database.update(contactsToUpdate, false);
+        for(Database.SaveResult updateResult : updateResults) {
+            ResponseWrapper wrapper = new ResponseWrapper();
+            if (updateResult.isSuccess()) {
+                wrapper.success = true;
+                wrapper.errors = new List<ErrorResponse>();
+            } else {
+                wrapper.success = false;
+                List<ErrorResponse> errors = new List<ErrorResponse>();
+                for(Database.Error error : updateResult.getErrors()) {
+                    ErrorResponse errorResponse = new ErrorResponse();
+                    errorResponse.StatusCode = '' + error.getStatusCode();
+                    errorResponse.Message = error.getMessage();
+                    errorResponse.Fields = error.getFields();
+                    errors.add(errorResponse);
+                }
+                wrapper.errors = errors;
+            }
+            responseWrapperList.add(wrapper);
+        }
+
+        return responseWrapperList;
+    }
+}

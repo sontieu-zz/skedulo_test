@@ -1,0 +1,5 @@
+public class SearchItem {
+    public String RecordId { get; set; }
+    public String RecordName { get; set; }
+    public String RecordType { get; set; }
+}

@@ -1,0 +1,60 @@
+public class TextSearchController {
+    
+    private String searchText;
+   
+    public TextSearchController() {
+        searchText = ApexPages.currentPage().getParameters().get('search_text');
+    }
+
+    public String getSearchText() {
+        return searchText;
+    }
+
+    public List<SearchItem> getSearchItems() {
+        List<SearchItem> searchItems = new List<SearchItem>();
+        
+        if (searchText != null) {
+            List<SearchItem> accountSearchItems = getAccountByName(searchText);
+            if (accountSearchItems.size() > 0) {
+                searchItems.addAll(accountSearchItems);
+            }
+    
+            List<SearchItem> contactSearchItems = getContactByName(searchText);
+            if (contactSearchItems.size() > 0) {
+                searchItems.addAll(contactSearchItems);
+            }            
+        }
+        
+        return searchItems;
+    }
+    
+    private List<SearchItem> getAccountByName(String name) {
+        List<SearchItem> searchItems = new List<SearchItem>();
+
+        List<Account> accounts = Database.query('SELECT Id, Name FROM Account WHERE Name LIKE \'' + name + '%\'');        
+        for (Account account : accounts) {
+            SearchItem item = new SearchItem();
+            item.RecordId = account.Id;
+            item.RecordName = account.Name;
+            item.RecordType = 'Account';
+            searchItems.add(item);
+        }
+
+        return searchItems;
+    }
+    
+    private List<SearchItem> getContactByName(String name) {
+        List<SearchItem> searchItems = new List<SearchItem>();
+        
+        List<Contact> contacts = Database.query('SELECT Id, Name FROM Contact WHERE Name LIKE \'' + name + '%\'');        
+        for (Contact contact : contacts) {
+            SearchItem item = new SearchItem();
+            item.RecordId = contact.Id;
+            item.RecordName = contact.Name;
+            item.RecordType = 'Contact';
+            searchItems.add(item);
+        }
+        
+        return searchItems;
+    }    
+}
